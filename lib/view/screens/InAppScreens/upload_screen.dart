@@ -217,15 +217,15 @@ class _UploadScreenState extends State<UploadScreen> {
     return Scaffold(
       key: scaffoldKey,
       backgroundColor: Colors.white,
-      // appBar: AppBar(
-      //   elevation: 0,
-      //   backgroundColor: Colors.white,
-      //   title: const Text(
-      //     "Upload Project",
-      //     style: TextStyle(
-      //         color: Colors.black, fontSize: 18, fontWeight: FontWeight.bold),
-      //   ),
-      // ),
+      appBar: AppBar(
+          elevation: 0,
+          backgroundColor: Colors.white,
+          centerTitle: true,
+          title: const Text(
+            "Upload Project",
+            style: TextStyle(
+                fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black),
+          )),
       body: Center(
         child: GestureDetector(
           onTap: () {

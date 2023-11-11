@@ -1,12 +1,16 @@
+import 'dart:ffi';
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:devgram/controllers/helper/constants.dart';
 import 'package:devgram/controllers/helper/converttime.dart';
 import 'package:devgram/view/screens/PostScreens/previewScreen.dart';
 import 'package:devgram/view/screens/UserScreen/userScreen.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_iconly/flutter_iconly.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class PostScreen extends StatefulWidget {
   const PostScreen({Key? key}) : super(key: key);
@@ -18,7 +22,9 @@ class PostScreen extends StatefulWidget {
 class _PostScreenState extends State<PostScreen> {
   var imageurl;
   var price;
+  var zipurl;
   var documentId;
+  var coinBalance;
 
   @override
   void initState() {
@@ -27,12 +33,33 @@ class _PostScreenState extends State<PostScreen> {
   }
 
   getDocumentId() async {
-    var collection = FirebaseFirestore.instance.collection('users');
-    var querySnapshots = await collection.get();
-    for (var snapshot in querySnapshots.docs) {
-      setState(() {
-        documentId = snapshot.id;
-      });
+    try {
+      var collection = FirebaseFirestore.instance.collection('users');
+      var querySnapshots = await collection.get();
+      for (var snapshot in querySnapshots.docs) {
+        setState(() {
+          documentId = snapshot.id;
+        });
+      }
+      getCoinBalance(documentId);
+    } on Exception catch (e) {
+      print('Error getting document ID: $e');
+    }
+  }
+
+  getCoinBalance(String userId) async {
+    try {
+      var collection = FirebaseFirestore.instance.collection('users');
+      var userDocument = await collection.doc(userId).get();
+
+      if (userDocument.exists) {
+        coinBalance = userDocument['coinBalance'];
+        print('Coin Balance for $userId: $coinBalance');
+      } else {
+        print('User not found');
+      }
+    } on Exception catch (e) {
+      print("Erro getting the coin balance");
     }
   }
 
@@ -64,7 +91,37 @@ class _PostScreenState extends State<PostScreen> {
     );
   }
 
-  void purchaseProject() {
+  void _launchURL(Uri url) async {
+    await canLaunchUrl(url)
+        ? await launchUrl(url)
+        : ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              backgroundColor: Colors.red,
+              content: Text(
+                'Error In Opening Url',
+                style: TextStyle(color: Colors.white),
+              ),
+            ),
+          );
+  }
+
+  void projectRedirect() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        backgroundColor: Colors.green,
+        content: Text(
+          'Purchased Sucessfylly . Redirecting....',
+          style: TextStyle(color: Colors.white),
+        ),
+      ),
+    );
+    print('Zip Url of the project is ${zipurl}');
+    Uri url = Uri.parse(zipurl);
+    _launchURL(url);
+    print("Url Has Been launched");
+  }
+
+  void purchaseProject(String zipurl) {
     showModalBottomSheet(
         context: context,
         builder: (context) {
@@ -108,7 +165,59 @@ class _PostScreenState extends State<PostScreen> {
                       ),
                     ),
                     GestureDetector(
-                      onTap: () {},
+                      onTap: () async {
+                        int priceInt = int.parse(price);
+                        int coinBalanceInt = int.parse(coinBalance);
+
+                        if (priceInt > coinBalanceInt) {
+                          Navigator.pop(context);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              backgroundColor: Colors.red,
+                              content: Text(
+                                'Balance Insufficient',
+                                style: TextStyle(color: Colors.white),
+                              ),
+                            ),
+                          );
+                        } else if (priceInt == coinBalanceInt ||
+                            priceInt < coinBalanceInt) {
+                          try {
+                            Navigator.pop(context);
+                            var newCoinBalance = coinBalanceInt - priceInt;
+                            await FirebaseFirestore.instance
+                                .collection("users")
+                                .doc(documentId)
+                                .update({
+                              "coinBalance": newCoinBalance
+                                  .toString(), // Convert back to String
+                            });
+                            projectRedirect();
+                          } catch (e) {
+                            Navigator.pop(context);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                backgroundColor: Colors.red,
+                                content: Text(
+                                  'Error updating coin balance',
+                                  style: TextStyle(color: Colors.white),
+                                ),
+                              ),
+                            );
+                          }
+                        } else {
+                          Navigator.pop(context);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              backgroundColor: Colors.red,
+                              content: Text(
+                                'Something Went Wrong. Try Again..',
+                                style: TextStyle(color: Colors.white),
+                              ),
+                            ),
+                          );
+                        }
+                      },
                       child: Container(
                         width: MediaQuery.of(context).size.width * 0.45,
                         height: 60,
@@ -146,6 +255,7 @@ class _PostScreenState extends State<PostScreen> {
         final timeago = ConvertTime().convertToAgo(doc['time'].toDate());
         imageurl = doc['imageurl'];
         price = doc['price'];
+        zipurl = doc['zipurl'];
         return Container(
           width: double.infinity,
           height: MediaQuery.of(context).size.height * 0.52,
@@ -274,7 +384,7 @@ class _PostScreenState extends State<PostScreen> {
                     ),*/
                     GestureDetector(
                       onTap: () {
-                        purchaseProject();
+                        purchaseProject(zipurl);
                       },
                       child: Container(
                         width: MediaQuery.of(context).size.width * 0.8,
@@ -288,7 +398,7 @@ class _PostScreenState extends State<PostScreen> {
                           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                           children: [
                             Text(
-                              '₹' + doc['price'],
+                              doc['price'] + 'DG',
                               style: const TextStyle(
                                   color: blackColor, fontSize: 12),
                             ),

@@ -35,16 +35,17 @@ class _WalletScreenState extends State<WalletScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: whiteColor,
       appBar: AppBar(
-        backgroundColor: Colors.black,
+        backgroundColor: Colors.white,
+        elevation: 0,
         leading: GestureDetector(
           onTap: () {
             Navigator.pop(context);
           },
           child: const Icon(
             IconlyBold.arrowLeftSquare,
-            color: Colors.white,
+            color: Colors.black,
             size: 40,
           ),
         ),
@@ -57,7 +58,7 @@ class _WalletScreenState extends State<WalletScreen> {
             if (snapshot.hasError) return Text('Error = ${snapshot.error}');
             if (snapshot.hasData) {
               var output = snapshot.data!.data();
-              var value = output!['coinBalance'];
+              var value = output?['coinBalance'];
               print(value); // <-- Your value
               return walletScreenUI(value);
             }
@@ -76,7 +77,7 @@ class _WalletScreenState extends State<WalletScreen> {
         const Text(
           "Your Balance",
           style: TextStyle(
-            color: Colors.white,
+            color: blackColor,
             fontSize: 30,
             fontWeight: FontWeight.bold,
           ),
@@ -106,7 +107,7 @@ class _WalletScreenState extends State<WalletScreen> {
           ),
           child: const Text(
             "Buy Coins ",
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+            style: TextStyle(color: blackColor, fontWeight: FontWeight.bold),
           ),
         ),
         Container(
@@ -115,7 +116,7 @@ class _WalletScreenState extends State<WalletScreen> {
           child: const Text(
             "Latest Transactions",
             style: TextStyle(
-                fontSize: 14, color: Colors.white, fontWeight: FontWeight.w100),
+                fontSize: 14, color: blackColor, fontWeight: FontWeight.w100),
           ),
         ),
         Flexible(
@@ -136,10 +137,6 @@ class _WalletScreenState extends State<WalletScreen> {
     return Container(
       width: double.infinity,
       height: 80,
-      decoration: BoxDecoration(
-        color: Colors.black,
-        borderRadius: BorderRadius.circular(13),
-      ),
       padding: const EdgeInsets.all(10),
       margin: const EdgeInsets.only(bottom: 10, left: 10, right: 10),
       child: Row(
@@ -162,7 +159,7 @@ class _WalletScreenState extends State<WalletScreen> {
                   text: TextSpan(
                       text: 'Purchased Successfully for ',
                       style: TextStyle(
-                          color: Colors.white,
+                          color: blackColor,
                           fontSize: 12,
                           fontFamily: GoogleFonts.poppins().fontFamily),
                       children: [

@@ -32,7 +32,7 @@ class _MainScreenState extends State<MainScreen> {
                   fontWeight: FontWeight.bold,
                   color: Colors.black),
             ),
-            /* actions: [
+            actions: [
               GestureDetector(
                 onTap: () {
                   Navigator.push(
@@ -49,7 +49,7 @@ class _MainScreenState extends State<MainScreen> {
               const SizedBox(
                 width: 20,
               )
-            ],*/
+            ],
           ),
           body: Container(
             margin: const EdgeInsets.only(left: 10, right: 10, top: 20),

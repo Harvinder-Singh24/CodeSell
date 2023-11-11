@@ -16,13 +16,15 @@ class _TransactionScreenState extends State<TransactionScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      /* appBar: AppBar(
-        backgroundColor: Colors.black,
-        title: const Text(
-          "Transaction",
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-        ),
-      ),*/
+      appBar: AppBar(
+          elevation: 0,
+          backgroundColor: Colors.white,
+          centerTitle: true,
+          title: const Text(
+            "Notificatios",
+            style: TextStyle(
+                fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black),
+          )),
       body: Container(
         margin: const EdgeInsets.only(left: 10, right: 10, top: 20),
         child: ListView.builder(
@@ -43,10 +45,10 @@ Widget leadercard(BuildContext context) {
   return Container(
     width: double.infinity,
     height: 80,
-    decoration: BoxDecoration(
-      color: whiteColor,
-      borderRadius: BorderRadius.circular(13),
-    ),
+    // decoration: BoxDecoration(
+    //   color: whiteColor,
+    //   borderRadius: BorderRadius.circular(13),
+    // ),
     padding: const EdgeInsets.all(10),
     margin: const EdgeInsets.only(bottom: 30),
     child: Row(

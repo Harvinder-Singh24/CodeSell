@@ -46,6 +46,8 @@ dependencies:
   show_up_animation: ^2.0.0
   cached_network_image: ^3.3.0
   google_sign_in: ^6.1.6
+  url_launcher: ^6.2.1
+  
 
 dev_dependencies:
   flutter_lints: ^2.0.0

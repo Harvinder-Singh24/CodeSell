@@ -32,15 +32,17 @@ class _SearchScreenState extends State<SearchScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
         backgroundColor: Colors.white,
-        // appBar: AppBar(
-        //   elevation: 0,
-        //   backgroundColor: Colors.white,
-        //   title: const Text(
-        //     "Search",
-        //     style: TextStyle(
-        //         color: Colors.black, fontSize: 18, fontWeight: FontWeight.bold),
-        //   ),
-        // ),
+        appBar: AppBar(
+            elevation: 0,
+            backgroundColor: Colors.white,
+            centerTitle: true,
+            title: const Text(
+              "Search",
+              style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black),
+            )),
         body: SafeArea(
           child: Container(
             margin: const EdgeInsets.only(left: 10, right: 10, top: 20),
