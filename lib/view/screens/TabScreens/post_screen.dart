@@ -1,5 +1,3 @@
-import 'dart:ffi';
-
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:devgram/controllers/helper/constants.dart';
@@ -258,12 +256,13 @@ class _PostScreenState extends State<PostScreen> {
         zipurl = doc['zipurl'];
         return Container(
           width: double.infinity,
-          height: MediaQuery.of(context).size.height * 0.52,
+          // height: MediaQuery.of(context).size.height * 0.52,
           decoration: BoxDecoration(
             color: const Color(0xffF8F8FF),
             borderRadius: BorderRadius.circular(8),
           ),
           margin: const EdgeInsets.only(bottom: 20),
+          padding: const EdgeInsets.only(bottom: 20),
           child: Container(
             margin: const EdgeInsets.only(left: 10, right: 10, top: 10),
             child: Column(

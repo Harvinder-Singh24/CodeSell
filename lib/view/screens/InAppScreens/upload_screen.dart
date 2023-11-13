@@ -187,23 +187,34 @@ class _UploadScreenState extends State<UploadScreen> {
     final FilePickerResult? result = await FilePicker.platform
         .pickFiles(type: FileType.custom, allowedExtensions: ['zip']);
 
-    if (result!.files.isNotEmpty == true) {
-      zipFile = File((result.files.first.path ?? ""));
+    if (result != null && result.files.isNotEmpty) {
+      zipFile = File(result.files.first.path ?? "");
       setState(() {
         zipname = result.files.first.name;
         isSelected = true;
-      }); // do something with the downloadUrl
+      });
       print(zipFile);
-    }
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        backgroundColor: Colors.green,
-        content: Text(
-          'File Selected',
-          style: TextStyle(color: Colors.white),
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          backgroundColor: Colors.green,
+          content: Text(
+            'File Selected',
+            style: TextStyle(color: Colors.white),
+          ),
         ),
-      ),
-    );
+      );
+    } else {
+      // Handle the case when the user cancels file selection
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          backgroundColor: Colors.red,
+          content: Text(
+            'File selection canceled',
+            style: TextStyle(color: Colors.white),
+          ),
+        ),
+      );
+    }
   }
 
   @override
@@ -377,6 +388,28 @@ class _UploadScreenState extends State<UploadScreen> {
                     fontSize: 12,
                   ),
                   hintText: "Description for the project",
+                ),
+              ),
+            ),
+            const SizedBox(
+              height: 20,
+            ),
+            Expanded(
+              child: TextFormField(
+                controller: _descriptionsController,
+                keyboardType: TextInputType.multiline,
+                maxLines: null, //
+                style: const TextStyle(color: Colors.black),
+                decoration: const InputDecoration(
+                  prefixIcon: Icon(
+                    IconlyBold.edit,
+                    color: Colors.black,
+                  ),
+                  hintStyle: TextStyle(
+                    color: Colors.black,
+                    fontSize: 12,
+                  ),
+                  hintText: "Name For Project",
                 ),
               ),
             ),

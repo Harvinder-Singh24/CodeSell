@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
@@ -21,11 +23,21 @@ class _SearchScreenState extends State<SearchScreen> {
   QuerySnapshot? searchSnapshot;
   CollectionReference userCollection =
       FirebaseFirestore.instance.collection("users");
+  CollectionReference projectCollection =
+      FirebaseFirestore.instance.collection("projects");
+  Timer? _debounce;
 
   searchUser(String name) {
     return userCollection
         .orderBy('name')
         .startAt([name]).endAt([name + '\uf8ff']).get();
+  }
+
+  searchProject(String projectName) {
+    return projectCollection
+        .where('projectName', isGreaterThanOrEqualTo: projectName)
+        .where('projectName', isLessThanOrEqualTo: projectName + '\uf8ff')
+        .get();
   }
 
   @override
@@ -73,7 +85,7 @@ class _SearchScreenState extends State<SearchScreen> {
                       )),
                       GestureDetector(
                         onTap: () {
-                          searchingUser();
+                          searching();
                         },
                         child: const Icon(
                           IconlyLight.search,
@@ -95,25 +107,38 @@ class _SearchScreenState extends State<SearchScreen> {
         ));
   }
 
-  void searchingUser() {
+  void searching() {
     if (searchController.text.isNotEmpty) {
       setState(() {
         isLoading = true;
       });
-      searchUser(searchController.text).then((value) {
-        searchSnapshot = value;
-        isLoading = false;
-        hasUserSearched = true;
-        if (value.docs.isEmpty) {
-          setState(() {
-            isLoading = false;
+
+      // Cancel previous debounce timer
+      if (_debounce != null && _debounce!.isActive) {
+        _debounce!.cancel();
+      }
+
+      // Debounce the search for a short period (e.g., 500 milliseconds)
+      _debounce = Timer(const Duration(milliseconds: 500), () {
+        searchUser(searchController.text).then((userResult) {
+          searchProject(searchController.text).then((projectResult) {
+            setState(() {
+              searchSnapshot = userResult;
+              searchSnapshot!.docs.addAll(projectResult.docs);
+              isLoading = false;
+              hasUserSearched = true;
+            });
+
+            if (searchSnapshot!.docs.isEmpty) {
+              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                  backgroundColor: Colors.red,
+                  content: Text("No results found")));
+            }
           });
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-              backgroundColor: Colors.red, content: Text("No user found")));
-        }
+        });
       });
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
         backgroundColor: Colors.red,
         content: Text(
           "Invalid name",
@@ -130,11 +155,25 @@ class _SearchScreenState extends State<SearchScreen> {
               physics: const BouncingScrollPhysics(),
               itemCount: searchSnapshot!.docs.length,
               itemBuilder: (context, index) {
-                return leadercard(
-                  context,
-                  searchSnapshot!.docs[index]['name'],
-                  searchSnapshot!.docs[index]['designation'],
-                );
+                final documentData =
+                    searchSnapshot!.docs[index].data() as Map<String, dynamic>;
+
+                if (documentData.containsKey('designation')) {
+                  return userCard(
+                    context,
+                    documentData['name'],
+                    documentData['designation'],
+                  );
+                } else if (documentData.containsKey('projectName')) {
+                  return projectCard(
+                    context,
+                    documentData['projectName'],
+                    documentData[
+                        'otherData'], // Add the correct key for other project data
+                  );
+                } else {
+                  return const SizedBox(); // Handle other cases if needed
+                }
               },
             ),
           )
@@ -147,7 +186,7 @@ class _SearchScreenState extends State<SearchScreen> {
           );
   }
 
-  Widget leadercard(BuildContext context, String name, String designation) {
+  Widget userCard(BuildContext context, String name, String designation) {
     return Container(
       width: double.infinity,
       height: 80,
@@ -188,8 +227,8 @@ class _SearchScreenState extends State<SearchScreen> {
             ],
           ),
           const Spacer(),
-          Row(
-            children: const [
+          const Row(
+            children: [
               CircleAvatar(
                 radius: 20,
                 backgroundColor: greenColor,
@@ -207,4 +246,48 @@ class _SearchScreenState extends State<SearchScreen> {
       ),
     );
   }
+}
+
+Widget projectCard(BuildContext context, String projectName, String otherData) {
+  return Container(
+    width: double.infinity,
+    height: 80,
+    decoration: BoxDecoration(
+      color: whiteColor,
+      borderRadius: BorderRadius.circular(13),
+    ),
+    padding: const EdgeInsets.all(10),
+    margin: const EdgeInsets.only(bottom: 20),
+    child: Row(
+      children: [
+        // Project Image or Icon (customize as needed)
+        Container(
+          width: 40,
+          height: 40,
+          decoration: const BoxDecoration(
+            shape: BoxShape.circle,
+            color: Colors.blue, // Example color, customize as needed
+          ),
+          child: const Icon(
+            Icons.folder, // Example icon, customize as needed
+            color: whiteColor,
+          ),
+        ),
+        const SizedBox(width: 10),
+        // Project Name
+        Text(
+          projectName,
+          style: const TextStyle(
+              color: blackColor, fontSize: 12, fontWeight: FontWeight.bold),
+        ),
+        const Spacer(),
+        // Other Project Data (e.g., Date, Size, etc.)
+        Text(
+          otherData,
+          style: const TextStyle(
+              fontWeight: FontWeight.w100, color: blackColor, fontSize: 12),
+        ),
+      ],
+    ),
+  );
 }
