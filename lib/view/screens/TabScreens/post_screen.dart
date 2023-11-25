@@ -4,6 +4,7 @@ import 'package:devgram/controllers/helper/constants.dart';
 import 'package:devgram/controllers/helper/converttime.dart';
 import 'package:devgram/view/screens/PostScreens/previewScreen.dart';
 import 'package:devgram/view/screens/UserScreen/userScreen.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_iconly/flutter_iconly.dart';
@@ -23,6 +24,7 @@ class _PostScreenState extends State<PostScreen> {
   var zipurl;
   var documentId;
   var coinBalance;
+  var userName;
 
   @override
   void initState() {
@@ -30,17 +32,21 @@ class _PostScreenState extends State<PostScreen> {
     getDocumentId();
   }
 
+  String? getUserId() {
+    var userId = FirebaseAuth.instance.currentUser;
+    return userId?.uid;
+  }
+
   getDocumentId() async {
     try {
-      var collection = FirebaseFirestore.instance.collection('users');
-      var querySnapshots = await collection.get();
-      for (var snapshot in querySnapshots.docs) {
-        setState(() {
-          documentId = snapshot.id;
-        });
+      var userId = getUserId();
+      if (userId != null) {
+        documentId = userId;
+        getCoinBalance(documentId);
+      } else {
+        print('User not logged in.');
       }
-      getCoinBalance(documentId);
-    } on Exception catch (e) {
+    } catch (e) {
       print('Error getting document ID: $e');
     }
   }
@@ -103,6 +109,20 @@ class _PostScreenState extends State<PostScreen> {
           );
   }
 
+  void projectNotification(String userName, String projectImageUrl) {
+    FirebaseFirestore.instance
+        .collection("users")
+        .doc(documentId)
+        .collection("projectNotifications")
+        .add({
+      "userName": userName,
+      "imageUrl": projectImageUrl,
+      "price": price,
+      "message": "$userName has purchased your project",
+      "time": DateTime.now(),
+    });
+  }
+
   void projectRedirect() {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
@@ -119,7 +139,7 @@ class _PostScreenState extends State<PostScreen> {
     print("Url Has Been launched");
   }
 
-  void purchaseProject(String zipurl) {
+  void purchaseProject(String zipurl, String name, String imageUrl) {
     showModalBottomSheet(
         context: context,
         builder: (context) {
@@ -191,6 +211,7 @@ class _PostScreenState extends State<PostScreen> {
                                   .toString(), // Convert back to String
                             });
                             projectRedirect();
+                            projectNotification(userName, imageUrl);
                           } catch (e) {
                             Navigator.pop(context);
                             ScaffoldMessenger.of(context).showSnackBar(
@@ -252,6 +273,7 @@ class _PostScreenState extends State<PostScreen> {
       children: snapshot.data!.docs.map((doc) {
         final timeago = ConvertTime().convertToAgo(doc['time'].toDate());
         imageurl = doc['imageurl'];
+        userName = doc['name'];
         price = doc['price'];
         zipurl = doc['zipurl'];
         return Container(
@@ -383,7 +405,7 @@ class _PostScreenState extends State<PostScreen> {
                     ),*/
                     GestureDetector(
                       onTap: () {
-                        purchaseProject(zipurl);
+                        purchaseProject(zipurl, userName, imageurl);
                       },
                       child: Container(
                         width: MediaQuery.of(context).size.width * 0.8,

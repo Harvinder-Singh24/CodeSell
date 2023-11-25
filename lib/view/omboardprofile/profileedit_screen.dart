@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:devgram/controllers/helper/constants.dart';
 import 'package:devgram/view/screens/home_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:show_up_animation/show_up_animation.dart';
@@ -18,6 +19,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
   final controller = PageController(initialPage: 0);
   final emailController = TextEditingController();
   final nameController = TextEditingController();
+  final passwordController = TextEditingController();
   final designationController = TextEditingController();
   final auth = FirebaseAuth.instance;
   bool isLoading = false;
@@ -28,10 +30,40 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
     super.dispose();
   }
 
+  void authenticateUser() async {
+    try {
+      await FirebaseAuth.instance.createUserWithEmailAndPassword(
+          email: emailController.text.toString(),
+          password: passwordController.text.toString());
+
+      var user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        sendDataToFirebase();
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            backgroundColor: Colors.red,
+            content: Text("Failed to add user",
+                style: TextStyle(color: Colors.white)),
+          ),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: Colors.red,
+          content: Text("Authentication Error" + '$e',
+              style: const TextStyle(color: Colors.white)),
+        ),
+      );
+    }
+  }
+
   void sendDataToFirebase() async {
     setState(() {
       isLoading = true;
     });
+    authenticateUser();
     CollectionReference users = FirebaseFirestore.instance.collection('users');
     SharedPreferences pref = await SharedPreferences.getInstance();
     await users
@@ -43,6 +75,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
           'coinBalance': 0,
           'followers': 0,
           'myproject': [],
+          'userId': FirebaseAuth.instance.currentUser!.uid,
         })
         .then((value) => {
               setState(() {
@@ -106,6 +139,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
               physics: const NeverScrollableScrollPhysics(),
               children: [
                 emailwidget(context),
+                passwordwidget(context),
                 namewidget(context),
                 proffesionalwidget(context),
               ],
@@ -137,6 +171,20 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                     ));
                   }
                 } else if (controller.page == 1) {
+                  if (passwordController.text.isNotEmpty) {
+                    controller.nextPage(
+                        duration: const Duration(milliseconds: 500),
+                        curve: Curves.easeIn);
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                      backgroundColor: Colors.red,
+                      content: Text(
+                        "Please Enter Password",
+                        style: TextStyle(color: Colors.white),
+                      ),
+                    ));
+                  }
+                } else if (controller.page == 2) {
                   if (nameController.text.isNotEmpty) {
                     controller.nextPage(
                         duration: const Duration(milliseconds: 500),
@@ -150,9 +198,9 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                       ),
                     ));
                   }
-                } else if (controller.page == 2) {
+                } else if (controller.page == 3) {
                   if (designationController.text.isNotEmpty) {
-                    sendDataToFirebase();
+                    authenticateUser();
                   } else {
                     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
                       backgroundColor: Colors.red,
@@ -243,6 +291,62 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                   fontSize: 12,
                 ),
                 hintText: "Email",
+                focusedBorder: OutlineInputBorder(
+                    borderSide: BorderSide(color: greenColor)),
+                enabledBorder: OutlineInputBorder()),
+          ),
+          const SizedBox(
+            height: 100,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget passwordwidget(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(left: 20, top: 150, right: 30),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          RichText(
+            text: const TextSpan(
+              text: 'Enter your ',
+              style: TextStyle(fontSize: 30, color: Colors.black),
+              children: [
+                TextSpan(
+                  text: 'Password?',
+                  style: TextStyle(
+                      fontWeight: FontWeight.bold, color: secondaryColor),
+                ),
+              ],
+            ),
+          ),
+          const Text(
+            "Enter your password",
+            style: TextStyle(
+              fontSize: 10,
+              color: Colors.black54,
+              fontWeight: FontWeight.w100,
+            ),
+          ),
+          const SizedBox(
+            height: 50,
+          ),
+          TextFormField(
+            controller: passwordController,
+            style: const TextStyle(color: Colors.black),
+            obscureText: false,
+            decoration: const InputDecoration(
+                prefixIcon: Icon(
+                  Icons.lock,
+                  color: greenColor,
+                ),
+                hintStyle: TextStyle(
+                  color: Colors.black54,
+                  fontSize: 12,
+                ),
+                hintText: "Password",
                 focusedBorder: OutlineInputBorder(
                     borderSide: BorderSide(color: greenColor)),
                 enabledBorder: OutlineInputBorder()),

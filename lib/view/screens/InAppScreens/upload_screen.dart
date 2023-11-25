@@ -34,6 +34,7 @@ class _UploadScreenState extends State<UploadScreen> {
   final user = FirebaseAuth.instance.currentUser;
   final _descriptionsController = TextEditingController();
   final _priceController = TextEditingController();
+  final _nameController = TextEditingController();
   String? zipurl;
   bool? isgoogleLogin;
   String? imgurl;
@@ -82,6 +83,7 @@ class _UploadScreenState extends State<UploadScreen> {
     Map<String, dynamic> data = {
       'description': _descriptionsController.text,
       'price': _priceController.text,
+      'projectName': _nameController.text,
       'imageurl': imgurl,
       'zipName': zipname,
       'zipurl': zipurl,
@@ -260,7 +262,8 @@ class _UploadScreenState extends State<UploadScreen> {
                         GestureDetector(
                           onTap: () {
                             if (_descriptionsController.text.isNotEmpty &&
-                                _priceController.text.isNotEmpty) {
+                                _priceController.text.isNotEmpty &&
+                                _nameController.text.isNotEmpty) {
                               controller.nextPage(
                                   duration: const Duration(seconds: 1),
                                   curve: Curves.ease);
@@ -396,7 +399,7 @@ class _UploadScreenState extends State<UploadScreen> {
             ),
             Expanded(
               child: TextFormField(
-                controller: _descriptionsController,
+                controller: _nameController,
                 keyboardType: TextInputType.multiline,
                 maxLines: null, //
                 style: const TextStyle(color: Colors.black),

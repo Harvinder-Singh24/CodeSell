@@ -1,5 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:devgram/controllers/helper/constants.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_iconly/flutter_iconly.dart';
 import 'package:show_up_animation/show_up_animation.dart';
@@ -13,6 +15,7 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   var documentId;
+  var userId;
 
   @override
   void initState() {
@@ -20,16 +23,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
     getDocumentId();
   }
 
-  getDocumentId() async {
-    var collection = FirebaseFirestore.instance.collection('users');
-    var querySnapshots = await collection.get();
-    for (var snapshot in querySnapshots.docs) {
-      setState(() {
-        documentId = snapshot.id;
-      });
-    }
+  // getDocumentId() async {
+  //   var collection = FirebaseFirestore.instance.collection('users');
+  //   var querySnapshots = await collection.get();
+  //   for (var snapshot in querySnapshots.docs) {
+  //     setState(() {
+  //       documentId = snapshot.id;
+  //     });
+  //   }
 
-    print(documentId);
+  //   print(documentId);
+  // }
+  getDocumentId() async {
+    userId = FirebaseAuth.instance.currentUser!.uid;
+    print('UserId = ' + userId);
+    return userId;
   }
 
   @override
@@ -49,157 +57,179 @@ class _ProfileScreenState extends State<ProfileScreen> {
               )
             ],
             leading: const Icon(IconlyBold.graph, color: Colors.black)),
-        body: StreamBuilder(
-          stream: FirebaseFirestore.instance.collection('users').snapshots(),
+        body: StreamBuilder<QuerySnapshot>(
+          stream: FirebaseFirestore.instance
+              .collection('users')
+              .where('userId', isEqualTo: userId)
+              .snapshots(),
           builder: (context, snapshot) {
-            if (snapshot.data == null) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
               return const CircularProgressIndicator();
+            } else if (!snapshot.hasData || snapshot.data == null) {
+              return const Text('No data available');
             } else {
-              return profielScreenUI(snapshot);
+              return profielScreenUI(snapshot.data!);
             }
           },
         ));
   }
 
-  Widget profielScreenUI(AsyncSnapshot snapshot) {
-    final doc = snapshot.data!.docs.first.data();
-    return Container(
-      alignment: Alignment.center,
-      margin: const EdgeInsets.only(top: 30),
-      child: Column(
-        children: [
-          CircleAvatar(
-              radius: 70,
-              backgroundColor: secondaryColor,
-              child: Center(
-                child: Text(
-                  doc['name'][0],
-                  style: const TextStyle(
-                      color: blackColor,
-                      fontSize: 40,
-                      fontWeight: FontWeight.bold),
-                ),
-              )),
-          const SizedBox(
-            height: 10,
-          ),
-          Text(
-            doc['name'],
-            style: const TextStyle(
-                fontWeight: FontWeight.w900, color: Colors.black, fontSize: 20),
-          ),
-          Text(
-            doc['designation'],
-            style: const TextStyle(
-                fontWeight: FontWeight.w100,
-                color: Colors.black87,
-                fontSize: 12),
-          ),
-          const Text(
-            "Arnlod.netlify.app",
-            style: TextStyle(
-                fontWeight: FontWeight.w100, color: greenColor, fontSize: 12),
-          ),
-          Container(
-            width: double.infinity,
-            height: 70,
-            decoration: BoxDecoration(
-              color: whiteColor,
-              borderRadius: BorderRadius.circular(13),
-            ),
-            margin: const EdgeInsets.only(left: 10, right: 10, top: 20),
-            child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          '${doc['myproject'].length}' ?? '0',
-                          style: const TextStyle(
-                              fontWeight: FontWeight.w100,
-                              color: Colors.black,
-                              fontSize: 12),
-                        ),
-                        const Text("Projects",
-                            style: TextStyle(
-                                fontWeight: FontWeight.w100,
-                                color: Colors.black,
-                                fontSize: 12)),
-                      ]),
-                  Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          doc['followers'].toString() ?? '0',
-                          style: const TextStyle(
-                              fontWeight: FontWeight.w100,
-                              color: Colors.black,
-                              fontSize: 12),
-                        ),
-                        const Text(
-                          "Followers",
-                          style: TextStyle(
-                              fontWeight: FontWeight.w100,
-                              color: Colors.black,
-                              fontSize: 12),
-                        ),
-                      ]),
-                  Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          doc['coinBalance'].toString() ?? '0',
-                          style: const TextStyle(
-                              fontWeight: FontWeight.w100,
-                              color: Colors.black,
-                              fontSize: 12),
-                        ),
-                        const Text(
-                          "DGCoin",
-                          style: TextStyle(
-                              fontWeight: FontWeight.w100,
-                              color: Colors.black,
-                              fontSize: 12),
-                        ),
-                      ])
-                ]),
-          ),
-          const SizedBox(
-            height: 10,
-          ),
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: doc['myproject'].length == 0
-                  ? const Center(
+  Widget profielScreenUI(QuerySnapshot snapshot) {
+    try {
+      if (snapshot.docs.isNotEmpty) {
+        var doc = snapshot.docs
+            .firstWhere((doc) => doc['userId'] == userId)
+            .data() as Map<String, dynamic>?;
+        if (doc != null) {
+          print("Raw document $doc");
+          return Container(
+            alignment: Alignment.center,
+            margin: const EdgeInsets.only(top: 30),
+            child: Column(
+              children: [
+                CircleAvatar(
+                    radius: 70,
+                    backgroundColor: secondaryColor,
+                    child: Center(
                       child: Text(
-                      "No Project Uploaded",
-                      style: TextStyle(color: Colors.black),
-                    ))
-                  : GridView.builder(
-                      physics: const BouncingScrollPhysics(),
-                      gridDelegate:
-                          const SliverGridDelegateWithMaxCrossAxisExtent(
-                              maxCrossAxisExtent: 300,
-                              mainAxisExtent: 200,
-                              childAspectRatio: 3 / 2,
-                              crossAxisSpacing: 10,
-                              mainAxisSpacing: 10),
-                      itemCount: doc['myproject'].length,
-                      itemBuilder: (BuildContext ctx, index) {
-                        return ClipRRect(
-                          borderRadius: BorderRadius.circular(13),
-                          child: Image.network(
-                            doc['myproject'][index]['imageurl'],
-                            fit: BoxFit.cover,
-                          ),
-                        );
-                      }),
+                        doc['name'][0],
+                        style: const TextStyle(
+                            color: blackColor,
+                            fontSize: 40,
+                            fontWeight: FontWeight.bold),
+                      ),
+                    )),
+                const SizedBox(
+                  height: 10,
+                ),
+                Text(
+                  doc['name'],
+                  style: const TextStyle(
+                      fontWeight: FontWeight.w900,
+                      color: Colors.black,
+                      fontSize: 20),
+                ),
+                Text(
+                  doc['designation'],
+                  style: const TextStyle(
+                      fontWeight: FontWeight.w100,
+                      color: Colors.black87,
+                      fontSize: 12),
+                ),
+                const Text(
+                  "Arnlod.netlify.app",
+                  style: TextStyle(
+                      fontWeight: FontWeight.w100,
+                      color: greenColor,
+                      fontSize: 12),
+                ),
+                Container(
+                  width: double.infinity,
+                  height: 70,
+                  decoration: BoxDecoration(
+                    color: whiteColor,
+                    borderRadius: BorderRadius.circular(13),
+                  ),
+                  margin: const EdgeInsets.only(left: 10, right: 10, top: 20),
+                  child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                '${doc['myproject'].length}' ?? '0',
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.w100,
+                                    color: Colors.black,
+                                    fontSize: 12),
+                              ),
+                              const Text("Projects",
+                                  style: TextStyle(
+                                      fontWeight: FontWeight.w100,
+                                      color: Colors.black,
+                                      fontSize: 12)),
+                            ]),
+                        Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                doc['followers'].toString() ?? '0',
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.w100,
+                                    color: Colors.black,
+                                    fontSize: 12),
+                              ),
+                              const Text(
+                                "Followers",
+                                style: TextStyle(
+                                    fontWeight: FontWeight.w100,
+                                    color: Colors.black,
+                                    fontSize: 12),
+                              ),
+                            ]),
+                        Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                doc['coinBalance'].toString() ?? '0',
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.w100,
+                                    color: Colors.black,
+                                    fontSize: 12),
+                              ),
+                              const Text(
+                                "DGCoin",
+                                style: TextStyle(
+                                    fontWeight: FontWeight.w100,
+                                    color: Colors.black,
+                                    fontSize: 12),
+                              ),
+                            ])
+                      ]),
+                ),
+                const SizedBox(
+                  height: 10,
+                ),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: doc['myproject'].length == 0
+                        ? const Center(
+                            child: Text(
+                            "No Project Uploaded",
+                            style: TextStyle(color: Colors.black),
+                          ))
+                        : GridView.builder(
+                            physics: const BouncingScrollPhysics(),
+                            gridDelegate:
+                                const SliverGridDelegateWithMaxCrossAxisExtent(
+                                    maxCrossAxisExtent: 300,
+                                    mainAxisExtent: 200,
+                                    childAspectRatio: 3 / 2,
+                                    crossAxisSpacing: 10,
+                                    mainAxisSpacing: 10),
+                            itemCount: doc['myproject'].length,
+                            itemBuilder: (BuildContext ctx, index) {
+                              return ClipRRect(
+                                borderRadius: BorderRadius.circular(13),
+                                child: Image.network(
+                                  doc['myproject'][index]['imageurl'],
+                                  fit: BoxFit.cover,
+                                ),
+                              );
+                            }),
+                  ),
+                )
+              ],
             ),
-          )
-        ],
-      ),
-    );
+          );
+        }
+      } else {}
+    } catch (e) {
+      print('Error processing document data: $e');
+      return const Text('Error processing document data');
+    }
+    return const Text('Error processing document data');
   }
 }

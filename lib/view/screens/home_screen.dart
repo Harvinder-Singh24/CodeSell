@@ -59,7 +59,14 @@ class _HomeScreenState extends State<HomeScreen> {
               onTap: (index) {
                 setState(() {
                   _selectedPageIndex = index;
-                  _pageController.jumpToPage(_selectedPageIndex);
+                  _pageController.animateToPage(_selectedPageIndex,
+                      duration: const Duration(milliseconds: 300),
+                      curve: Curves.easeInOut);
+
+                  // Check if there is an active modal bottom sheet before popping
+                  if (Navigator.of(context).canPop()) {
+                    Navigator.of(context).pop();
+                  }
                 });
               },
               currentIndex: _selectedPageIndex,

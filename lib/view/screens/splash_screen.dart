@@ -104,9 +104,9 @@ class _SplashScreenState extends State<SplashScreen> {
                 const SizedBox(
                   height: 10,
                 ),*/
-                Row(
+                const Row(
                   mainAxisAlignment: MainAxisAlignment.center,
-                  children: const [
+                  children: [
                     SizedBox(
                       width: 100,
                       child: Divider(

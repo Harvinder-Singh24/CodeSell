@@ -1,8 +1,10 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:show_up_animation/show_up_animation.dart';
 
 import '../../../controllers/helper/constants.dart';
+import '../../../controllers/helper/converttime.dart';
 
 class TransactionScreen extends StatefulWidget {
   const TransactionScreen({Key? key}) : super(key: key);
@@ -12,6 +14,29 @@ class TransactionScreen extends StatefulWidget {
 }
 
 class _TransactionScreenState extends State<TransactionScreen> {
+  var documentId;
+  @override
+  void initState() {
+    super.initState();
+    getDocumentId();
+  }
+
+  getDocumentId() async {
+    try {
+      var collection = FirebaseFirestore.instance.collection('users');
+      var querySnapshots = await collection.get();
+      for (var snapshot in querySnapshots.docs) {
+        if (mounted) {
+          setState(() {
+            documentId = snapshot.id;
+          });
+        }
+      }
+    } on Exception catch (e) {
+      print('Error getting document ID: $e');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -26,22 +51,47 @@ class _TransactionScreenState extends State<TransactionScreen> {
                 fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black),
           )),
       body: Container(
-        margin: const EdgeInsets.only(left: 10, right: 10, top: 20),
-        child: ListView.builder(
-          physics: const BouncingScrollPhysics(),
-          itemCount: 10,
-          itemBuilder: (context, index) {
-            return leadercard(
-              context,
-            );
-          },
-        ),
-      ),
+          margin: const EdgeInsets.only(left: 10, right: 10, top: 20),
+          child: StreamBuilder<QuerySnapshot>(
+            stream: FirebaseFirestore.instance
+                .collection('users')
+                .doc(documentId)
+                .collection('projectNotifications')
+                .snapshots(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(
+                  child: CircularProgressIndicator(),
+                );
+              } else if (snapshot.hasData && snapshot.data!.docs.isNotEmpty) {
+                // If there is data in the collection, show the post card
+                return ListView(
+                  physics: const BouncingScrollPhysics(),
+                  children: snapshot.data!.docs.map((doc) {
+                    var userName = doc['userName'];
+                    var message = doc['message'];
+                    var imgUrl = doc['imageUrl'];
+                    var price = doc['price'];
+                    final timeago =
+                        ConvertTime().convertToAgo(doc['time'].toDate());
+                    return leadercard(
+                        context, imgUrl, message, userName, timeago, price);
+                  }).toList(),
+                );
+              } else {
+                // If there is no data in the collection, show the message
+                return const Center(
+                  child: Text('No Notifications'),
+                );
+              }
+            },
+          )),
     );
   }
 }
 
-Widget leadercard(BuildContext context) {
+Widget leadercard(BuildContext context, String imgUrl, String message,
+    String userName, dynamic timeAgo, dynamic price) {
   return Container(
     width: double.infinity,
     height: 80,
@@ -53,10 +103,16 @@ Widget leadercard(BuildContext context) {
     margin: const EdgeInsets.only(bottom: 30),
     child: Row(
       children: [
-        const CircleAvatar(
+        CircleAvatar(
+          backgroundColor: greenColor,
           radius: 20,
-          backgroundImage: NetworkImage(
-              "https://t4.ftcdn.net/jpg/03/64/21/11/360_F_364211147_1qgLVxv1Tcq0Ohz3FawUfrtONzz8nq3e.jpg"),
+          child: Center(
+            child: Text(userName[0],
+                style: const TextStyle(
+                    color: blackColor,
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold)),
+          ),
         ),
         const SizedBox(
           width: 10,
@@ -69,14 +125,14 @@ Widget leadercard(BuildContext context) {
               width: 170,
               child: RichText(
                 text: TextSpan(
-                    text: 'Arnload purchased your project',
+                    text: '$userName purchased your project',
                     style: TextStyle(
                         color: Colors.black,
                         fontSize: 12,
                         fontFamily: GoogleFonts.poppins().fontFamily),
                     children: [
                       TextSpan(
-                        text: '+40DG',
+                        text: '+' + '$price' + 'DG',
                         style: TextStyle(
                           color: greenColor,
                           fontSize: 12,
@@ -86,9 +142,9 @@ Widget leadercard(BuildContext context) {
                     ]),
               ),
             ),
-            const Text(
-              "42min ago",
-              style: TextStyle(
+            Text(
+              timeAgo,
+              style: const TextStyle(
                   fontWeight: FontWeight.w100,
                   color: Color.fromRGBO(158, 158, 158, 1),
                   fontSize: 10),
@@ -99,7 +155,7 @@ Widget leadercard(BuildContext context) {
         ClipRRect(
           borderRadius: BorderRadius.circular(13),
           child: Image.network(
-            "https://cdn.dribbble.com/users/1997192/screenshots/14513385/media/28a22d492e7e4e43cfaaa0f4c4248a05.png?compress=1&resize=400x300",
+            imgUrl,
             fit: BoxFit.cover,
           ),
         ),
